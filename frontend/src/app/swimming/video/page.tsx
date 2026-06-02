@@ -1,0 +1,60 @@
+"use client";
+
+import { useState } from "react";
+import SwimUpload from "@/components/SwimUpload";
+import SwimAnalysisCard from "@/components/SwimAnalysisCard";
+import { analyzeSwim } from "@/lib/api";
+import type { SwimAnalysis } from "@/lib/types";
+
+export default function SwimVideoPage() {
+  const [analysis, setAnalysis] = useState<SwimAnalysis | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleUpload(file: File, stroke: string) {
+    setLoading(true);
+    setError(null);
+    try {
+      setAnalysis(await analyzeSwim(file, stroke));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Failed to analyze stroke");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <main className="min-h-screen py-10">
+      <div className="mx-auto max-w-3xl px-4">
+        <div className="mb-8">
+          <h1 className="text-2xl font-bold text-gray-900">Stroke Analyzer</h1>
+          <p className="mt-1 text-gray-600">
+            Upload a swimming video to get frame-by-frame AI coaching feedback on your technique.
+          </p>
+        </div>
+
+        {error && (
+          <div className="mb-6 rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700">
+            {error}
+          </div>
+        )}
+
+        {!analysis ? (
+          <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6">
+            <SwimUpload onSubmit={handleUpload} loading={loading} />
+          </div>
+        ) : (
+          <div className="space-y-6">
+            <SwimAnalysisCard analysis={analysis} />
+            <button
+              onClick={() => { setAnalysis(null); setError(null); }}
+              className="text-sm text-blue-700 hover:text-blue-900 hover:underline"
+            >
+              ← Analyze another stroke
+            </button>
+          </div>
+        )}
+      </div>
+    </main>
+  );
+}
