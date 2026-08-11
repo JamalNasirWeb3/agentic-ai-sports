@@ -1,2 +1,21 @@
+[project]
+name = "agentic-ai-sports-backend"
+version = "0.1.0"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "fastapi==0.115.0",
+    "uvicorn[standard]==0.30.6",
+    "anthropic>=0.52.0",
+    "pydantic==2.9.2",
+    "pydantic-settings==2.5.2",
+    "python-dotenv==1.0.1",
+    "opencv-python-headless==4.10.0.84",
+    "python-multipart==0.0.12",
+    "slowapi==0.1.9",
+]
+
+[tool.uv]
+package = false
+
 [tool.fastapi]
 entrypoint = "app.main:app"
