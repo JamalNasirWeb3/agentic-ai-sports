@@ -134,3 +134,15 @@ Four typed fetch functions: `analyzeRound`, `generatePracticePlan`, `analyzeSwin
 ## Architecture Pattern
 
 Each sport module follows: **submission → stats (deterministic) → AI narrative → practice plan**. The Golf module is the reference implementation. The Swimming module is a video-only variant (no stats step, no practice plan). Future sports modules should follow one of these two shapes depending on whether structured performance data exists.
+
+## Proposed: video-output coaching (not yet implemented)
+
+Discussed 2026-08-12, not started. User wants the swing/swim analyzers to return a **video**, not just annotated still frames, so users can watch their corrected form rather than read static coaching cues.
+
+**Ruled out:** true AI-generated "corrected video of the user" (altering their actual body position frame-by-frame while preserving their likeness) is not achievable with this stack — that needs a video-generation/motion-editing model, a different category of tech from Claude. Claude can describe video frames, not generate/edit video pixels. Don't attempt this without first evaluating a dedicated video-gen model/service, which would be a much bigger scope increase (new vendor, likely much higher cost per request, uncertain quality for something as precision-sensitive as body mechanics).
+
+**Two feasible extensions, in increasing order of effort:**
+1. **Full annotated video output** — `swing_analyzer.py`'s `_annotate_frame` (see Services above) already draws coaching overlays onto individual frames; extend `_extract_frames` to process every frame of the source video (not just the current 7 sampled ones) and stitch the annotated frames back into an mp4 via OpenCV's `VideoWriter`, so cues appear at the right timestamp instead of on isolated stills. Reuses most of the existing pipeline — the 7-frame *Claude vision call* can stay as-is (still the cost-effective way to get phase/observation text); only the *rendering* step needs to expand to the full frame range, re-using the phase timing from the 7 analyzed frames to interpolate which cue applies to the in-between frames.
+2. **Pose-skeleton overlay showing ideal vs. actual angles** — bigger lift. Add a local pose-estimation model (e.g. MediaPipe — free, runs locally, no new paid API dependency) to extract joint keypoints per frame, then draw the user's actual skeleton plus a visual delta toward the "correct" position implied by Claude's text feedback (e.g. hip rotation angle off by N°). Closer to what users likely picture as "corrected video," without pretending to be photorealistic. New dependency, new annotation logic, and a way to translate Claude's qualitative feedback into quantitative angle deltas (currently there's no numeric angle data anywhere in the pipeline — Claude's output is prose, not coordinates).
+
+**Recommended starting point:** #1, since it reuses existing code paths (`_annotate_frame`, the 7-frame Claude call) and ships a real improvement without new dependencies or cost. Evaluate #2 afterward based on whether users want more precision than cue-timing-on-video provides.
